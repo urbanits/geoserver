@@ -1,66 +1,50 @@
-FROM ubuntu:trusty
-MAINTAINER Maxim Romanenko<shirshakovm@gmail.com>
+FROM ubuntu:18.04
+MAINTAINER Maxim Romanenko<romanenko@urban-its.ru>
 
 ENV DEBIAN_FRONTEND noninteractive
 
+#Install system packages
 RUN apt-get -qq update \
-&& apt-get -qq -y --no-install-recommends install \
+    && apt-get -qq -y install \
     autoconf \
     automake \
     build-essential \
     curl \
-    libcurl3-gnutls-dev \
-    libepsilon-dev \
-    libexpat-dev \
-    libfreexl-dev \
-    libgeos-dev \
-    libgif-dev \
-    libhdf4-alt-dev \
-    libhdf5-serial-dev \
-    libjpeg-dev \
-    liblcms2-dev \
-    liblzma-dev \
-    libnetcdf-dev \
-    libpcre3-dev \
-    libpng12-dev \
-    libpodofo-dev \
-    libpoppler-dev \
-    libproj-dev \
-    libspatialite-dev \
-    libsqlite3-dev \
-    libtbb2 \
-    libwebp-dev \
-    libxerces-c-dev \
-    libxml2-dev \
-    netcdf-bin \
-    poppler-utils \
-    python-dev \
-    unixodbc-dev \
+    libpng-dev\
     unzip \
-    wget \
-    software-properties-common
+    software-properties-common \
+    openjdk-11-jre-headless \
+    && add-apt-repository ppa:ubuntugis/ubuntugis-unstable && apt-get update\
+    && apt-get -qq -y install \
+    g++ \
+    gcc \
+    libgdal-dev \
+    libgeos-dev \
+    libspatialite-dev \
+    make \
+    wget && \
+    apt-mark hold libgdal-dev libgeos-dev libspatialite-dev \
+    && wget http://archive.ubuntu.com/ubuntu/pool/universe/g/gdal/libgdal-java_2.2.3+dfsg-2_amd64.deb \
+    && wget http://archive.ubuntu.com/ubuntu/pool/universe/g/gdal/libgdal20_2.2.3+dfsg-2_amd64.deb \
+    && dpkg -i libgdal-java_2.2.3+dfsg-2_amd64.deb libgdal20_2.2.3+dfsg-2_amd64.deb \
+    && apt-get -f install \
+    && dpkg -i libgdal-java_2.2.3+dfsg-2_amd64.deb libgdal20_2.2.3+dfsg-2_amd64.deb; exit 0
 
-# Get ECW
-ENV ECW_DIR /opt/ecw
-#ENV ECW_OWN_DIR /opt
-RUN mkdir -p $ECW_DIR \
-    curl https://s3-us-west-2.amazonaws.com/addxy.com/SDK/ERDAS-ECW_JPEG_2000_SDK-5.2.1.tar.gz | \
-    tar xz -C $ECW_DIR
+# Copy geoserver from repository
+WORKDIR /opt/geoserver
+COPY geoserver .
 
-# Get MrSID
-ENV MRSID_DIR /opt/mrsid
-RUN mkdir -p $MRSID_DIR && \
-    curl https://s3-us-west-2.amazonaws.com/addxy.com/SDK/MrSID_DSDK-9.5.1.4427-linux.x86-64.gcc44.tar.gz | \
-    tar xz -C $MRSID_DIR
-
-# Get FileGDB
-ENV FILEGDB_DIR /opt/filegdb
-RUN mkdir -p $FILEGDB_DIR && \
-    curl https://s3-us-west-2.amazonaws.com/addxy.com/SDK/FileGDB_API-64.tar.gz | \
-    tar xz -C $FILEGDB_DIR
+#Build ECW libs from repository
+ENV ECW_DIR /usr/local
+WORKDIR /tmp
+COPY libecwj2-3.3 .
+WORKDIR /tmp/libecwj2-3.3
+RUN ./configure && \
+    make && \
+    make install 
 
 # Build GDAL from source
-ENV GDAL_VERSION 3.4.3
+ENV GDAL_VERSION 2.2.2
 RUN mkdir -p /usr/local/src && \
     curl http://download.osgeo.org/gdal/$GDAL_VERSION/gdal-$GDAL_VERSION.tar.gz | \
     tar xz -C /usr/local/src
@@ -68,140 +52,21 @@ RUN mkdir -p /usr/local/src && \
 WORKDIR /usr/local/src/gdal-$GDAL_VERSION
 
 RUN ./configure \
-    --prefix=/usr/local \
-    --without-libtool \
     --with-ecw=$ECW_DIR \
-    --with-epsilon \
-    --with-libkml \
-    --with-liblzma \
-    --with-mrsid=$MRSID_DIR/Raster_DSDK \
-    --with-mrsid_lidar=$MRSID_DIR/Lidar_DSDK \
-    --with-fgdb=$FILEGDB_DIR \
-    --with-poppler \
-    --with-python \
     --with-spatialite \
-    --with-threads \
-    --with-webp \
-&& make \
-&& make install \
-&& ldconfig
+    && make clean \
+    && make -j6 \
+    && make install \
+    && ldconfig
 
-# Install Geoserver
+# Geoserver Environmet variables
 ENV GEOSERVER_HOME /opt/geoserver
-ENV JAVA_HOME /usr
-ENV GDAL_PATH /usr/share/gdal
-ENV GDAL_DATA $GDAL_PATH/3.4
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/lib/jni:/usr/share/java:/opt/ecw/lib/x64/release:/opt/mrsid/Raster_DSDK/lib:/opt/mrsid/Lidar_DSDK/lib:/opt/filegdb/lib
-
-RUN dpkg-divert --local --rename --add /sbin/initctl
-
-# Install packages
-RUN \
-     \
-  apt-get -y install unzip software-properties-common && \
-  echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
-  add-apt-repository -y ppa:webupd8team/java && \
-  apt-get -y update && \
-  apt-get install -y oracle-java8-installer libgdal-java && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* && \
-  rm -rf /var/cache/oracle-jdk8-installer && \
-  rm -rf /tmp/* /var/tmp/*
-
-ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
-
-# Get native JAI and ImageIO
-RUN \
-    cd $JAVA_HOME && \
-    wget http://data.boundlessgeo.com/suite/jai/jai-1_1_3-lib-linux-amd64-jdk.bin && \
-    echo "yes" | sh jai-1_1_3-lib-linux-amd64-jdk.bin && \
-    rm jai-1_1_3-lib-linux-amd64-jdk.bin
-
-RUN \
-    cd $JAVA_HOME && \
-    export _POSIX2_VERSION=199209 &&\
-    wget http://data.opengeo.org/suite/jai/jai_imageio-1_1-lib-linux-amd64-jdk.bin && \
-    echo "yes" | sh jai_imageio-1_1-lib-linux-amd64-jdk.bin && \
-    rm jai_imageio-1_1-lib-linux-amd64-jdk.bin
-
-#
-# GEOSERVER INSTALLATION
-#
+#ENV JAVA_HOME /usr
+ENV GDAL_DATA /usr/local/share/gdal/
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib
 ENV GEOSERVER_VERSION 2.20.4
-ENV GEOSERVER_URL http://sourceforge.net/projects/geoserver/files/GeoServer/$GEOSERVER_VERSION
-
-# Get GeoServer
-RUN wget -c $GEOSERVER_URL/geoserver-$GEOSERVER_VERSION-bin.zip -O ~/geoserver.zip && \
-    unzip ~/geoserver.zip -d /opt && mv -v /opt/geoserver* /opt/geoserver && \
-    rm ~/geoserver.zip
-
-# Get Oracle plugin
-ENV PLUGIN oracle
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get Pyramid plugin
-ENV PLUGIN pyramid
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get ArcSDE plugin
-ENV PLUGIN arcsde
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get ArcSDE plugin
-ENV PLUGIN app-schema
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get JP2000 plugin
-ENV PLUGIN jp2k
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get GDAL plugin
-ENV PLUGIN gdal
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get CSS plugin
-ENV PLUGIN css
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get Excel plugin
-ENV PLUGIN excel
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get printing plugin
-ENV PLUGIN printing
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Get import plugin
-ENV PLUGIN importer
-RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-    rm ~/geoserver-$PLUGIN-plugin.zip
-
-# Replace GDAL Java bindings
-RUN ls $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib/
-RUN rm -rf $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib/imageio-ext-gdal-bindings-1.9.2.jar
-RUN cp /usr/share/java/gdal.jar $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib/gdal.jar
-RUN ls $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib/
 
 # Expose GeoServer's default port
 EXPOSE 8080
-
+WORKDIR /opt/geoserver/data_dir
 CMD ["/opt/geoserver/bin/startup.sh"]
