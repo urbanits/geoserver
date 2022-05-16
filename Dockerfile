@@ -64,7 +64,23 @@ ENV GEOSERVER_HOME /opt/geoserver
 #ENV JAVA_HOME /usr
 ENV GDAL_DATA /usr/local/share/gdal/
 ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib
-ENV GEOSERVER_VERSION 2.20.4
+
+##
+## PLUGINS INSTALLATION if need
+##
+#ENV GEOSERVER_VERSION 2.20.4
+#ENV GEOSERVER_URL http://sourceforge.net/projects/geoserver/files/GeoServer/$GEOSERVER_VERSION
+#
+## Get GeoServer from source
+#RUN wget -c $GEOSERVER_URL/geoserver-$GEOSERVER_VERSION-bin.zip -O ~/geoserver.zip && \
+#    unzip ~/geoserver.zip -d /opt && mv -v /opt/geoserver* /opt/geoserver && \
+#    rm ~/geoserver.zip
+#
+## Get some plugin
+#ENV PLUGIN <plugin_name>
+#RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
+#    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
+#    rm ~/geoserver-$PLUGIN-plugin.zip
 
 # Expose GeoServer's default port
 EXPOSE 8080
