@@ -50,16 +50,14 @@ RUN mkdir -p /usr/local/src && \
     tar xz -C /usr/local/src
 
 WORKDIR /usr/local/src/gdal-$GDAL_VERSION
-
 RUN ./configure \
     --with-ecw=$ECW_DIR \
     --with-spatialite \
     && make clean \
     && make \
     && make install \
-    && ldconfig \
+    && ldconfig
 
-#CLEAN DIRS AFTER BUILD
 WORKDIR /tmp/libecwj2-3.3
 RUN make clean
 
