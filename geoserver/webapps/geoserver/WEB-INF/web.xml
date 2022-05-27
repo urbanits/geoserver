@@ -217,12 +217,12 @@
       <url-pattern>/*</url-pattern>
     </filter-mapping>
    
-   <!-- Uncomment following filter to enable CORS
+   
     <filter-mapping>
         <filter-name>cross-origin</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    -->
+ 
    
     <filter-mapping>
       <filter-name>FlushSafeFilter</filter-name>
