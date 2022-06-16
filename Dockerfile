@@ -73,8 +73,8 @@ ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib
 ##
 ## PLUGINS INSTALLATION if need
 ##
-#ENV GEOSERVER_VERSION 2.20.4
-#ENV GEOSERVER_URL http://sourceforge.net/projects/geoserver/files/GeoServer/$GEOSERVER_VERSION
+ENV GEOSERVER_VERSION 2.20.4
+ENV GEOSERVER_URL http://sourceforge.net/projects/geoserver/files/GeoServer/$GEOSERVER_VERSION
 #
 ## Get GeoServer from source
 #RUN wget -c $GEOSERVER_URL/geoserver-$GEOSERVER_VERSION-bin.zip -O ~/geoserver.zip && \
@@ -82,10 +82,11 @@ ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib
 #    rm ~/geoserver.zip
 #
 ## Get some plugin
-#ENV PLUGIN <plugin_name>
-#RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
-#    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
-#    rm ~/geoserver-$PLUGIN-plugin.zip
+
+ENV PLUGIN vectortiles
+RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
+    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
+    rm ~/geoserver-$PLUGIN-plugin.zip
 
 # Expose GeoServer's default port
 EXPOSE 8080
