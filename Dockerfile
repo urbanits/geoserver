@@ -88,6 +88,13 @@ RUN wget -c $GEOSERVER_URL/extensions/geoserver-$GEOSERVER_VERSION-$PLUGIN-plugi
     unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
     rm ~/geoserver-$PLUGIN-plugin.zip
 
+ENV PLUGIN mbtiles
+RUN wget -c https://build.geoserver.org/geoserver/2.20.x/community-2024-02-13/geoserver-2.20-SNAPSHOT-mbtiles-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
+    unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
+    rm ~/geoserver-$PLUGIN-plugin.zip
+
+
+
 # Expose GeoServer's default port
 EXPOSE 8080
 WORKDIR /opt/geoserver/data_dir
