@@ -95,7 +95,7 @@ RUN wget -c https://build.geoserver.org/geoserver/2.20.x/community-2024-02-13/ge
 
 
 ENV PLUGIN wps
-RUN wget -c https://build.geoserver.org/geoserver/2.20.x/community-2024-02-13/geoserver-2.20-SNAPSHOT-gdal-wps-plugin.zip -O ~/geoserver-$PLUGIN-plugin.zip && \
+RUN wget -c https://sourceforge.net/projects/geoserver/files/GeoServer/2.20.4/extensions/geoserver-2.20.4-wps-plugin.zip/download -O ~/geoserver-$PLUGIN-plugin.zip && \
     unzip -o ~/geoserver-$PLUGIN-plugin.zip -d /opt/geoserver/webapps/geoserver/WEB-INF/lib/ && \
     rm ~/geoserver-$PLUGIN-plugin.zip
 
