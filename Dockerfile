@@ -30,9 +30,6 @@ RUN apt-get -qq update \
     && apt-get -f install \
     && dpkg -i libgdal-java_2.2.3+dfsg-2_amd64.deb libgdal20_2.2.3+dfsg-2_amd64.deb; exit 0
 
-# Copy geoserver from repository
-WORKDIR /opt/geoserver
-COPY geoserver .
 
 #Build ECW libs from repository
 ENV ECW_DIR /usr/local
@@ -42,6 +39,10 @@ WORKDIR /tmp/libecwj2-3.3
 RUN ./configure && \
     make && \
     make install 
+
+# Copy geoserver from repository
+WORKDIR /opt/geoserver
+COPY geoserver .
 
 # Build GDAL from source
 ENV GDAL_VERSION 2.2.2
